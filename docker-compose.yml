@@ -2,10 +2,12 @@ version: '2'
 
 services:
   data:
+    container_name: data
     image: busybox:latest
     volumes:
-      - ./data:/data
+      - pgdata:/data
   db:
+    container_name: db
     image: postgres:latest
     environment:
       POSTGRESQL_DB: my_db
@@ -14,11 +16,9 @@ services:
       PGDATA: /data/pgdata
     volumes_from:
       - data
-    entrypoint: ["/bin/bash", "/data/dbrun.sh"]
-    command: ["postgres"]
   web:
-    build: ./web
     container_name: authenticator
+    build: ./web
     command: python app.py
     volumes:
       - ./web/:/code/
@@ -26,3 +26,7 @@ services:
       - "8080:8080"
     depends_on:
       - db
+
+volumes:
+  pgdata:
+    external: true

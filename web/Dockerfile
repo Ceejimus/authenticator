@@ -13,7 +13,7 @@ RUN mkdir /code
 WORKDIR /code
 
 # add all files in project directory to '/code/' on container
-ADD ./web/requirements.txt /code/
+ADD ./requirements.txt /code/
 
 # install python requirements
 RUN pip install -r requirements.txt
