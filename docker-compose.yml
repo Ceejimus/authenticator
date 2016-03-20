@@ -1,0 +1,28 @@
+version: '2'
+
+services:
+  data:
+    image: busybox:latest
+    volumes:
+      - ./data:/data
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRESQL_DB: my_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: pass
+      PGDATA: /data/pgdata
+    volumes_from:
+      - data
+    entrypoint: ["/bin/bash", "/data/dbrun.sh"]
+    command: ["postgres"]
+  web:
+    build: ./web
+    container_name: authenticator
+    command: python app.py
+    volumes:
+      - ./web/:/code/
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
