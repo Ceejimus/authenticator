@@ -16,8 +16,18 @@ services:
       PGDATA: /data/pgdata
     volumes_from:
       - data
+  auth:
+    container_name: auth
+    build: ./auth
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./auth/:/code/
+    command: python app.py
+    depends_on:
+      - db
   web:
-    container_name: authenticator
+    container_name: web
     build: ./web
     command: python app.py
     volumes:
@@ -25,7 +35,7 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - db
+      - auth
 
 volumes:
   pgdata:
