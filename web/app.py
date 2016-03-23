@@ -1,4 +1,4 @@
-from flask import Flask, json
+from flask import Flask, json, request
 from flask.ext.login import login_required
 import requests
 
@@ -35,6 +35,15 @@ def home():
     }
     response = requests.post(url, json=data)
     return response.json()['email'] + response.json()['password']
+
+@app.route('/user')
+def get():
+    url = 'http://auth:8081/user'
+    print("WEB: geting url params")
+    payload = {'email' : request.args['email']}
+    print("WEB: got param %s" % (payload['email']))
+    response = requests.get(url, params=payload)
+    print(response)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=True)
