@@ -1,4 +1,4 @@
-from flask import Flask, json, request
+from flask import Flask, json, request, render_template, redirect, url_for
 from flask.ext.login import login_required
 import requests
 
@@ -26,24 +26,36 @@ class User():
 
 # Views
 @app.route('/')
+def redirect_to_login():
+    return redirect(url_for('login'))
+
+@app.route('/user/create')
 #@login_required
-def home():
+def create_user():
     url = 'http://auth:8081/user/create'
-    data = {
-        'email': 'cj@atmoscape.com',
-        'password': 'woot'
-    }
-    response = requests.post(url, json=data)
-    return response.json()['email'] + response.json()['password']
+    form_data = request.get_json()
+    response = requests.post(url, json=form_data)
+    if response.status_code == 200:
+        return "User Created"
+    else:
+        return "Something Bad Happend %d" % response.status_code
+
+
+@app.route('/login')
+def login():
+    return "login"
 
 @app.route('/user')
-def get():
+def get_user():
     url = 'http://auth:8081/user'
-    print("WEB: geting url params")
     payload = {'email' : request.args['email']}
-    print("WEB: got param %s" % (payload['email']))
     response = requests.get(url, params=payload)
-    print(response)
+    if response.status_code == 200:
+        user_data = response.json()
+        return "User Got!\n Email: %s\nValid: %s" \
+            % (user_data['email'], user_data['authenticated'])
+
+    return "Something Bad Happened %d" % response.status_code
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=True)

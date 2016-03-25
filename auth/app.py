@@ -1,5 +1,6 @@
 from flask import Flask, request, json, Response
 from flask.ext.sqlalchemy import SQLAlchemy
+import hashlib
 
 CONNECTION_STRING = \
     "postgresql+psycopg2://admin:pass@db:5432/postgres"
@@ -15,6 +16,7 @@ class User(db.Model):
 
     email = db.Column(db.String, primary_key=True)
     password = db.Column(db.String)
+    sald = db.Column(db.String)
     authenticated = db.Column(db.Boolean, default=False)
 
     def __init__(self, email, password):
@@ -47,14 +49,27 @@ def create_user():
 
 @app.route('/user', methods=['GET'])
 def get_user():
-    print("AUTH: geting url params")
     email = request.args['email']
-    print("AUTH: got param %s" % (email))
     if (email != None):
         user = User.query.filter_by(email=email).first()
-        print user
+        if (user == None):
+            return Response(status=404)
+        else:
+            user_data = {
+                'email': user.email,
+                'authenticated': user.authenticated
+            }
+            return Response(
+                json.dumps(user_data),
+                status=200,
+                mimetype="application/json"
+            )
+    else:
+        return Response(status=400)
 
-    return Response('ok', status=200)
+@app.route('/authenticate')
+def authenticate_user():
+    return false
 
 if __name__ == "__main__":
     db.create_all()
