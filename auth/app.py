@@ -1,6 +1,8 @@
 from flask import Flask, request, json, Response
 from flask.ext.sqlalchemy import SQLAlchemy
 import hashlib
+import os
+import binascii
 
 CONNECTION_STRING = \
     "postgresql+psycopg2://admin:pass@db:5432/postgres"
@@ -16,15 +18,30 @@ class User(db.Model):
 
     email = db.Column(db.String, primary_key=True)
     password = db.Column(db.String)
-    sald = db.Column(db.String)
+    salt = db.Column(db.String)
     authenticated = db.Column(db.Boolean, default=False)
 
-    def __init__(self, email, password):
+    def __init__(self, email, password, salt):
         self.email = email
         self.password = password
+        self.salt = salt
+        self.authenticated = False
 
     def __repr__(self):
         return '<User %r>' % self.email
+
+def hash_password(password, salt):
+    digest = hashlib.sha256
+    return hashlib.pbkdf2_hmac(
+        digest().name,
+        password,
+        salt,
+        100000,
+        None
+    )
+
+def salt(n):
+    salt = binascii.hexlify(os.urandom(n))
 
 @app.route('/user/create', methods=['POST'])
 def create_user():
@@ -67,9 +84,22 @@ def get_user():
     else:
         return Response(status=400)
 
-@app.route('/authenticate')
+@app.route('/authenticate', methods=['POST'])
 def authenticate_user():
-    return false
+    user_data = request.get_json()
+    email = user_data['email']
+    password = user_data['password']
+    user = User.query.filter_by(email=email).first()
+    hashed_password = hash_password(password, salt)
+    if (hashed_password == user.password):
+        user.authenticated = true
+    else:
+        user.authenticated == False
+    return Response(
+        json.dumps({'authenticated': user.authenticated}),
+        status = 200,
+        mimetype="application/json"
+    )
 
 if __name__ == "__main__":
     db.create_all()
