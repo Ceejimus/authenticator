@@ -1,5 +1,4 @@
-# lets use python v 2.7 for now since the tutorial says to
-FROM python:2.7
+FROM python:latest
 
 # run python in unbuffered mode so we get logs instantly
 ENV PYTHONUNBUFFERED 1

@@ -23,13 +23,13 @@ services:
       - "8081:8081"
     volumes:
       - ./auth/:/code/
-    command: python app.py
+    command: python run.py
     depends_on:
       - db
   web:
     container_name: web
     build: ./web
-    command: python app.py
+    command: python run.py
     volumes:
       - ./web/:/code/
     ports:

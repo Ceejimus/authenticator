@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		{% if title %}
+		    <title>{{ title }} - Atmoscape</title>
+	    {% else %}
+		    <title>Welcome to Atmoscape</title>
+	    {% endif %}	
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link href="static/bootstrap.min.css" rel="stylesheet" media="screen">
+		<link href="static/login.css" rel="stylesheet" media="screen">
+	</head>
+	<body>
+		{% with messages = get_flashed_messages() %}
+	      {% if messages %}
+	        <ul>
+	        {% for message in messages %}
+	            <li>{{ message }}</li>
+	        {% endfor %}
+	        </ul>
+	      {% endif %}
+	    {% endwith %}
+		{% block content %}
+		{% endblock %}
+	</body>
+</html>

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container login-container">
+        <h1>Login</h1>
+        <br>
+        <div class="row">
+            <form action="" method="post">
+                {{ form.hidden_tag() }}
+                <div class="row">
+                    <label class="control-label col-sm-4">Email:</label>
+                    <div class="col-sm-8">
+                        {{ form.email(class_="form-control", placeholder="email") }}
+                        {# <input type="text" class="form-control" placeholder="email" name="email" value="{{request.form.email}}"> #}
+                    </div>
+                </div>
+                <div class="row">
+                    <label class="control-label col-sm-4">Password:</label>
+                    <div class="col-sm-8">
+                        {{ form.password(class_="form-control", placeholder="password") }}
+                        {# <input type="text" class="form-control" placeholder="password" name="password" value="{{request.form.password}}"> #}
+                    </div>
+                </div>
+                <br/>
+                
+                 {# <span>{{ form.remember_me }} Remember Me</span> #}
+                <input class="btn btn-primary pull-right" type="submit" value="Login">
+            </form>
+        </div>
+        <div class="row">
+            <br/>
+            <div>
+                <span>-- or --</span>
+            </div>
+            <br/>
+            <a href="/user/create" class="btn btn-default pull-right create-new-user">Create New Account</a>
+        </div>
+        {% if error %}
+            <p class="error"><strong>Error:</strong> {{ error }}</p>
+        {% endif %}
+    </div>
+{% endblock %}

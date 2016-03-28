@@ -1,6 +1,8 @@
-psycopg2
-
 flask
 flask-login
+flask-wtf
+flask-failsafe
 
 requests
+
+psycopg2
