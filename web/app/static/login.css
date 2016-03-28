@@ -1,6 +1,19 @@
-.login-container {
-	width: 300px;
+.form-container {
+	width: 450px;
 }
+
+.form-container > h1 {
+	text-align: center;
+}
+
+.btn-create-new-user {
+	text-align: center;
+}
+
+.btn-create-new-user > a {
+	width: 60%;
+}
+
 
 form input {
 	display: block;

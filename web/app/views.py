@@ -10,18 +10,22 @@ import requests
 def redirect_to_login():
     return redirect(url_for('login'))
 
-@app.route('/user/create', methods=['POST'])
+@app.route('/account/create', methods=['GET', 'POST'])
 #@login_required
 def create_user():
-    url = AUTH_SERVICE + 'user/create'
-    user = request.form['email']
-    password = request.form['password']
-    data = {'email': email, 'password': password}
-    response = requests.post(url, json=data)
-    if response.status_code == 200:
-        return "User Created"
+    form = forms.CreateUserForm();
+    if form.validate_on_submit():
+        url = AUTH_SERVICE + 'user/create'
+        user = request.form['email']
+        password = request.form['password']
+        data = {'email': email, 'password': password}
+        response = requests.post(url, json=data)
+        if response.status_code == 200:
+            return "User Created"
+        else:
+            return "Something Bad Happend %d" % response.status_code
     else:
-        return "Something Bad Happend %d" % response.status_code
+        return render_template("create_user.html", title="Create Account", form=form)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -42,7 +46,8 @@ def login():
                 flash("Invalid Email/Password...")
         else:
             flash("Something Bad Happened: HTTP STATUS: %d" % response.status_code)
-    return render_template('login.html', title="Login", form=form)
+    else:
+        return render_template("login.html", title="Login", form=form)
 
 @app.route('/user')
 def get_user():
