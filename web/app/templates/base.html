@@ -11,6 +11,7 @@
 		<link href="/static/login.css" rel="stylesheet" media="screen">
 	</head>
 	<body>
+		{% import "__formhelpers.html" as form_helpers %}
 		{% with messages = get_flashed_messages() %}
 	      {% if messages %}
 	        <ul>

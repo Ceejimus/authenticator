@@ -6,30 +6,9 @@
         <br>
         <form class="form-horizontal" action="" method="post">
             {{ form.hidden_tag() }}
-            <div class="row">
-                <div class="form-group">
-                    <label class="control-label col-sm-4">Email:</label>
-                    <div class="col-sm-8">
-                        {{ form.email(class_="form-control", placeholder="email") }}
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="form-group">
-                    <label class="control-label col-sm-4">Password:</label>
-                    <div class="col-sm-8">
-                        {{ form.password(class_="form-control", placeholder="password") }}
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="form-group">
-                    <label class="control-label col-sm-4">Confirm Password:</label>
-                    <div class="col-sm-8">
-                        {{ form.confirm_password(class_="form-control", placeholder="confirm password") }}
-                    </div>
-                </div>
-            </div>
+        	{{ form_helpers.simple_field("Email", form.email, placeholder="email") }}
+        	{{form_helpers.password_field("Password", form.password, placeholder="password")}}
+        	{{form_helpers.password_field("Confirm Password", form.confirm_password, placeholder="confirm password")}}
             <br/>
             <div class="row">
                 <input class="btn btn-primary pull-right" type="submit" value="Create">

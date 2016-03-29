@@ -1,4 +1,4 @@
-from app import app
+from app import app, db
 import app.domain as domain
 from flask import request, json, Response
 import hashlib
@@ -7,16 +7,16 @@ import binascii
 
 @app.route('/user/create', methods=['POST'])
 def create_user():
-    salt = binascii.hexlify(os.urandom(256))
     if request.headers['content-type'] == 'application/json':
         user_data = request.get_json()
         if (user_data['email'] != None and user_data['password'] != None):
-            newUser = domain.User(user_data['email'], user_data['password'])
+            salt = binascii.hexlify(os.urandom(256))
+            hashed_password = hash_password(user_data['password'], salt)
+            newUser = domain.User(user_data['email'], hashed_password, salt)
             db.session.add(newUser)
             db.session.commit()
-
         return Response(
-            json.dumps(newUser),
+            newUser.json(),
             status=200,
             mimetype='application/json'
         )
@@ -73,6 +73,10 @@ def authenticate_user():
     
 def hash_password(password, salt):
     digest = hashlib.sha256
+    if (type(password) is str):
+        password = bytearray(password, 'utf8')
+    if (type(salt) is str):
+        salt = bytearray(salt, 'utf8')
     return hashlib.pbkdf2_hmac(
         digest().name,
         password,

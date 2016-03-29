@@ -16,7 +16,7 @@ def create_user():
     form = forms.CreateUserForm();
     if form.validate_on_submit():
         url = AUTH_SERVICE + 'user/create'
-        user = request.form['email']
+        email = request.form['email']
         password = request.form['password']
         data = {'email': email, 'password': password}
         response = requests.post(url, json=data)
@@ -41,6 +41,7 @@ def login():
         if response.status_code == 200:
             user_data = response.json();
             if user_data['authenticated'] == True:
+                print(url_for('login'))
                 return redirect(url_for('login'))
             else:
                 flash("Invalid Email/Password...")
