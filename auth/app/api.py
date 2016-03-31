@@ -10,9 +10,11 @@ def create_user():
     if request.headers['content-type'] == 'application/json':
         user_data = request.get_json()
         if (user_data['email'] != None and user_data['password'] != None):
-            salt = binascii.hexlify(os.urandom(256))
-            hashed_password = hash_password(user_data['password'], salt)
-            newUser = domain.User(user_data['email'], hashed_password, salt)
+            salt = os.urandom(256)
+            password = user_data['password']
+            hashed_password = hash_password(password, salt)
+            print("creating new user:\nemail: %s, pass: %s, salt: %s" % (user_data['email'], bytes_to_string(hashed_password), bytes_to_string(salt)))
+            newUser = domain.User(user_data['email'], bytes_to_string(hashed_password), bytes_to_string(salt))
             db.session.add(newUser)
             db.session.commit()
         return Response(
@@ -54,15 +56,18 @@ def authenticate_user():
     password = user_data['password']
     user = domain.User.query.filter_by(email=email).first()
     if user == None:
+        print("User not found %s" % email)
         return Response(
             json.dumps({'authenticated': False}),
             status=200,
             mimetype='application/json'
         )
-    salt = user.salt
+    salt = string_to_bytes(user.salt)
     hashed_password = hash_password(password, salt)
-    if (hashed_password == user.password):
-        user.authenticated = true
+    print("db\nemail: %s, pass: %s, salt: %s" % (user.email, user.password, user.salt))
+    print("calc\nemail: %s, pass: %s" % (email, bytes_to_string(hashed_password)))
+    if (hashed_password == string_to_bytes(user.password)):
+        user.authenticated = True
     else:
         user.authenticated == False
     return Response(
@@ -70,13 +75,18 @@ def authenticate_user():
         status=200,
         mimetype="application/json"
     )
+
+def bytes_to_string(data):
+    return binascii.hexlify(data).decode('utf8')
+
+def string_to_bytes(data):
+    return binascii.unhexlify(data.encode('utf8'))
     
 def hash_password(password, salt):
     digest = hashlib.sha256
+    print("hashing\npassword: type -- %s, val --%s\nsalt: type -- %s, val -- %s" % (type(password), password, type(salt), salt))
     if (type(password) is str):
-        password = bytearray(password, 'utf8')
-    if (type(salt) is str):
-        salt = bytearray(salt, 'utf8')
+        password = password.encode('utf8')
     return hashlib.pbkdf2_hmac(
         digest().name,
         password,

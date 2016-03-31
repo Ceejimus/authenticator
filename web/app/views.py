@@ -21,11 +21,12 @@ def create_user():
         data = {'email': email, 'password': password}
         response = requests.post(url, json=data)
         if response.status_code == 200:
-            return "User Created"
+            flash("User Created")
+            return redirect_to_login()
         else:
-            return "Something Bad Happend %d" % response.status_code
-    else:
-        return render_template("create_user.html", title="Create Account", form=form)
+            flash("Something Bad Happend %d" % response.status_code)
+
+    return render_template("create_user.html", title="Create Account", form=form)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -40,15 +41,20 @@ def login():
         response = requests.post(url, json=data)
         if response.status_code == 200:
             user_data = response.json();
+            print("HI")
+            print(user_data['authenticated'])
             if user_data['authenticated'] == True:
-                print(url_for('login'))
-                return redirect(url_for('login'))
+                return home(email)
             else:
                 flash("Invalid Email/Password...")
         else:
             flash("Something Bad Happened: HTTP STATUS: %d" % response.status_code)
-    else:
-        return render_template("login.html", title="Login", form=form)
+
+    return render_template("login.html", title="Login", form=form)
+
+@app.route('/home')
+def home(email):
+    return render_template("home.html", email=email)
 
 @app.route('/user')
 def get_user():

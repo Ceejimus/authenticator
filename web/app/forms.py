@@ -8,11 +8,20 @@ class LoginForm(Form):
 	#remember_me = BooleanField('remember_me', default=False)
 
 class CreateUserForm(Form):
-	email = StringField('email', validators=[DataRequired(), Email(message="Invalid E-mail Address")])
-	password = StringField('password',
+	email = StringField('email', 
 		validators=[
 			DataRequired(),
-			EqualTo('confirm_password', message="Oops! Passwords don't match...")
+			Email(message="Invalid E-mail Address")
 		]
 	)
-	confirm_password = StringField('confirm_password')
+	password = PasswordField('password',
+		validators=[
+			DataRequired()
+		]
+	)
+	confirm_password = PasswordField('confirm_password',
+		validators=[
+			DataRequired(),
+			EqualTo('password', message="Oops! Passwords don't match...")
+		]
+	)
