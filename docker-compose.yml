@@ -18,12 +18,14 @@ services:
       - data
   auth:
     container_name: auth
+    # environment:
+    #   PYTHONPATH: /code/
     build: ./auth
     ports:
       - "8081:8081"
     volumes:
       - ./auth/:/code/
-    command: python run.py
+    command: python run.py 
     depends_on:
       - db
   web:
