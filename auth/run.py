@@ -3,7 +3,61 @@ import unittest
 from io import StringIO
 import re
 
-FAILED_TEST_INFO_REGEX_FORMAT_STR = "FAIL: {0}$.*\-+"
+FAILED_TEST_INFO_REGEX_FORMAT_STR = "FAIL: {0}"
+
+class Test(object):
+    def __init__(self, failed, file, suite, name):
+        self.failed = failed
+        self.file = file
+        self.suite = suite
+        self.name = name
+        self.details = []
+
+    def setDetails(self, details):
+        self.details = details
+
+class TestsSummary(object):
+    def __init__(self):
+        self.summary = None
+        self.passed_tests = []
+        self.failed_tests = []
+
+    def hasSummary(self):
+        return self.summary != None
+
+    def setSummary(self, summary):
+        self.summary = summary
+
+    def addFailedTest(self, file, suite, name):
+        self.failed_tests.append(Test(True, file, suite, name))
+
+    def addPassedTest(self, file, suite, name):
+        self.passed_tests.append(Test(False, file, suite, name))
+
+    def setDetils(self, name, details):
+        for failed_test in self.failed_tests:
+            if failed_test.name == name:
+                failed_test.setDetails(details)
+
+    def __str__(self):
+        out = ""
+        if (self.summary == None):
+            out += "No Summary"
+        else:
+            out += self.summary
+        out += "\n"
+
+        for failed_test in self.failed_tests:
+            out += "{0}.{1}.{2} failed...\nDetails:\n".format(
+                    failed_test.file,
+                    failed_test.suite,
+                    failed_test.name
+                )
+            for line in failed_test.details:
+                out += line
+                out += "\n"
+
+        return out
 
 def run_tests():
     output = StringIO()
@@ -12,69 +66,60 @@ def run_tests():
     return output.getvalue()
 
 def parse_test_results(test_results):
+    found_equals_line = False
     print("------------ TEST RESULTS -------------")
+    print(test_results)
+    print("------------ END RESULTS  -------------")
 
     test_summary_regex = r'Ran\s+(\d+)\s+test(s?)\s+in\s+(\d+\.\d+)(\w+)'
-    results = {}
-    for line in test_results.split('\n'):
-        if ('summary' not in results):
+    failed_tests_regex = r'((\w+)\s+\((\w+)\.(\w+)\)).*(FAIL)'
+    passed_tests_regex = r'(\w+)\s+\((\w+)\.(\w+)\).*(ok)'
+    separator_regex = r'([=-])\1{40,}'
+
+    results = {
+        "summary": None,
+        "failed_tests": [],
+        "passed_tests": []
+    }
+    testsSummary = TestsSummary()
+    lines = test_results.split('\n')
+    for line in lines:
+        if testsSummary.hasSummary() == False:
             match = re.search(test_summary_regex, line)
             if match != None:
-                results['summary'] = match.group(0)
-        print(line)
-    print('Results Summary: %s' % results['summary'])
+                testsSummary.setSummary(match.group(0))
+                continue
+        match = re.search(failed_tests_regex, line)
+        if match != None:
+            file = match.group(2)
+            suite = match.group(3)
+            name = match.group(1)
+            testsSummary.addFailedTest(file, suite, name)
+            continue
+        match = re.search(passed_tests_regex, line)
+        if match != None:
+            file = match.group(2)
+            suite = match.group(3)
+            name = match.group(1)
+            testsSummary.addPassedTest(file, suite, name)
+            continue
 
-    print("------------ END RESULTS  -------------")
+    for test in testsSummary.failed_tests:
+        failed_test_regex = FAILED_TEST_INFO_REGEX_FORMAT_STR.format(re.escape(test.name))
+        for i in range(len(lines)):
+            match = re.search(failed_test_regex, lines[i])
+            if match != None:
+                details = []
+                i += 2
+                match = re.search(separator_regex, lines[i])
+                while match == None:
+                    details.append(lines[i])
+                    i += 1
+                    match = re.search(separator_regex, lines[i])
+                print(details)
+                test.setDetails(details)
 
-    print("------------ REGEX RESULTS -------------")
-
-    # find and print test summary
-    test_summary = re.search(test_summary_regex, test_results)
-    num_tests = int(test_summary.group(1))
-    time_taken = float(test_summary.group(3))
-    time_unit = test_summary.group(4)
-    print(" ----- %d test%s ran in %s(%s)" % (
-            num_tests, 
-            test_summary.group(2), #test or tests
-            time_taken,
-            time_unit
-        )
-    )
-    # find and print failed tests summary
-    failed_tests_regex = r'((\w+)\s+\((\w+)\.(\w+)\)).*(FAIL)'
-    failed_tests = re.finditer(failed_tests_regex, test_results)
-    print(" \n---- Failures -----\n")
-    for failed_test in failed_tests:
-        failed_test_regex = FAILED_TEST_INFO_REGEX_FORMAT_STR.format(re.escape(failed_test.group(1)))
-        test_info = re.search(failed_test_regex, test_results, re.DOTALL)
-        print(failed_test_regex)
-        print(test_results)
-        print(test_info)
-        module = failed_test.group(3)
-        fixture = failed_test.group(4)
-        test = failed_test.group(2)
-        print(" ----- Module: \"%s\" -- Fixture: \"%s\" -- Test: \"%s\"" % (
-                module,
-                fixture,
-                test
-            )
-        )
-
-    # for test in failed_tests:
-    #     print(test)
-    # print(sum(1 for _ in failed_tests))
-    # if failed_tests == None or len(failed_tests) == 0:
-    #     print("no failed tests")
-    # else:
-    #     for failed_test in failed_tests:
-    #         print(failed_test)
-
-    # find and print passed tests summary
-    passed_tests_regex = r'(\w+)\s+\((\w+)\.(\w+)\).*(ok)'
-    passed_tests = re.finditer(passed_tests_regex, test_results)
-    # if passed_tests == None or len(passed_tests) == 0:
-    #     print("no passed tests")
-    print("------------ END RESULTS  -------------")
+    print(str(testsSummary))
 
 @failsafe
 def create_app():

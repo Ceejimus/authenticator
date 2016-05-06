@@ -17,7 +17,13 @@ class MyTest(TestCase):
     def test_passed_test(self):
         self.assertEqual(2, 2)
 
+    def test_passed_test2(self):
+        self.assertEqual(2, 2)
+
     def test_failed_test(self):
+        self.assertEqual(2, 4)
+
+    def test_failed_test2(self):
         self.assertEqual(2, 4)
 
 test_cases = [MyTest]
