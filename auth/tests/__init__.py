@@ -1,8 +1,10 @@
 import unittest
 from flask.ext.testing import TestCase
 from app import app, db
+import app.domain as domain
+import app.api as api
 
-class MyTest(TestCase):
+class MyTests(TestCase):
     def create_app(self):
         app.config.from_pyfile('testconfig.py')
         return app
@@ -14,8 +16,14 @@ class MyTest(TestCase):
         db.session.remove();
         db.drop_all()
 
-    def test_passed_test(self):
-        self.assertEqual(2, 2)
+    def test_can_get_user_from_email(self):
+        newUser = domain.User("test@test.com", "passhash", "salt")
+        db.session.add(newUser)
+        db.session.commit()
+        user_data = api.get_user_from_email("test@test.com")
+        print(user_data)
+        self.assertEqual(user_data["email"], "test@test.com")
+        self.assertEqual(user_data["authenticated"], False)
 
     def test_passed_test2(self):
         self.assertEqual(2, 2)
@@ -26,7 +34,7 @@ class MyTest(TestCase):
     def test_failed_test2(self):
         self.assertEqual(2, 4)
 
-test_cases = [MyTest]
+test_cases = [MyTests]
 
 def load_tests(loader, tests, pattern):
     suite = unittest.TestSuite()

@@ -33,21 +33,26 @@ def create_user():
 def get_user():
     email = request.args['email']
     if (email != None):
-        user = User.query.filter_by(email=email).first()
-        if (user == None):
+        user_data = get_user_from_email(email);
+        if (user_data == None):
             return Response(status=404)
         else:
-            user_data = {
+            return json_response(user_data)
+    else:
+        return Response(status=400)
+
+def get_user_from_email(email):
+        user = domain.User.query.filter_by(email=email).first()
+        if (user == None):
+            return None
+        else:
+            return {
                 'email': user.email,
                 'authenticated': user.authenticated
             }
-            return Response(
-                json.dumps(user_data),
-                status=200,
-                mimetype="application/json"
-            )
-    else:
-        return Response(status=400)
+
+def json_response(data):
+    return Response(json.dumps(data), status=200, mimetype='application/json')
 
 @app.route('/authenticate', methods=['POST'])
 def authenticate_user():

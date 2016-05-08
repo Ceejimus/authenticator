@@ -18,27 +18,28 @@ services:
       - data
   auth:
     container_name: auth
-    # environment:
-    #   PYTHONPATH: /code/
     build: ./auth
     ports:
       - "8081:8081"
     volumes:
       - ./auth/:/code/
+      - ./test_results:/test_results
     command: python run.py 
     depends_on:
       - db
-  web:
-    container_name: web
-    build: ./web
-    command: python run.py
-    volumes:
-      - ./web/:/code/
-    ports:
-      - "8080:8080"
-    depends_on:
-      - auth
+  # web:
+  #   container_name: web
+  #   build: ./web
+  #   command: python run.py
+  #   volumes:
+  #     - ./web/:/code/
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     - auth
 
 volumes:
   pgdata:
+    external: true
+  testing:
     external: true
