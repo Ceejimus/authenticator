@@ -1,3 +1,5 @@
 *.pyc
+*.po
+*/__pychache__
 *.sublime-project
 */*.sublime-workspace

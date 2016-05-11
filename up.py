@@ -1,8 +1,10 @@
 #! /c/Users/cj/AppData/Local/Programs/Python/Python35/python
 import unittest
 from io import StringIO
-from subprocess import call
+from subprocess import call, check_output
 import re
+import os
+import shutil
 
 FAILED_TEST_INFO_REGEX_FORMAT_STR = "(FAIL|ERROR): {0}"
 
@@ -44,13 +46,24 @@ class TestRun(object):
         return len(self.failed_tests) == 0
 
     def __str__(self):
-        out = ""
+        out = "="*80
+        out += "\n"
+        out += "="*80
+        out += "\n"
         if (self.summary == None):
-            out += "No Summary"
+            out += "No Summary\n"
         else:
             out += self.summary
+            out += "\n"
+
         out += "\n"
 
+        failed_test_count = len(self.failed_tests)
+        passed_test_count = len(self.passed_tests)
+        test_count = failed_test_count + passed_test_count
+
+        if failed_test_count > 0:
+            out += "{0}/{1} tests failed ...\n\n".format(failed_test_count, test_count)
         for failed_test in self.failed_tests:
             out += "{0}.{1}.{2} failed...\nDetails:\n".format(
                     failed_test.file,
@@ -61,12 +74,27 @@ class TestRun(object):
                 out += line
                 out += "\n"
 
+        if passed_test_count > 0:
+            out += "{0}/{1} tests passed ...\n\n".format(passed_test_count, test_count)
+        for passed_test in self.passed_tests:
+            out += "[PASSED] {0}.{1}.{2}...\n".format(
+                    passed_test.file,
+                    passed_test.suite,
+                    passed_test.name
+                )
+            out += "\n"
+
+        out += "="*80
+        out += "\n"
+        out += "="*80
+        out += "\n"
+
         return out
 
 def parse_test_results(test_results):
     test_summary_regex = r'Ran\s+(\d+)\s+test(s?)\s+in\s+(\d+\.\d+)(\w+)'
     failed_tests_regex = r'((\w+)\s+\((\w+)\.(\w+)\)).*(FAIL|ERROR)'
-    passed_tests_regex = r'(\w+)\s+\((\w+)\.(\w+)\).*(ok)'
+    passed_tests_regex = r'((\w+)\s+\((\w+)\.(\w+)\)).*(ok)'
     separator_regex = r'([=-])\1{40,}'
 
     testRun = TestRun()
@@ -109,15 +137,28 @@ def parse_test_results(test_results):
     return(testRun)
 
 test_output_dir = './test_results/'
+
+dirs_deleted = []
+for dirname, dirnames, filenames in os.walk('.'):
+    for subdirname in dirnames:
+        if re.search("__pycache__", subdirname):
+            print("removing '{}'".format(os.path.join(dirname, subdirname)))
+            shutil.rmtree(os.path.join(dirname, subdirname))
+
+    for filename in filenames:
+        if re.search("(\.p((o)|(yc))$)", filename):
+            print("removing '{}'".format(os.path.join(dirname, subdirname, filename)))
+            os.remove(os.path.join(dirname, subdirname, file))
+
+
+# build the composition
 call(["docker-compose", "build"])
+
+# for some reason I have to call tests twice for it to pick up changes
+# not a big deal ... for now
 call(["docker-compose", "run", "-d", "--rm", "auth", "python", "test.py"])
-call(["docker-compose", "run", "-d", "--rm", "auth", "python", "test.py"])
+# call(["docker-compose", "run", "-d", "--rm", "auth", "python", "test.py"])
+
+# open test results -- parse -- print results
 with open('./test_results/auth_test_results.txt', 'r') as f:
-    results = f.read()
-    print(results)
-    run = parse_test_results(results)
-    if run.allTestsPassed():
-        print(run.summary)
-        print("auth tests passed")
-    else:
-        print(str(run))
+    print(str(parse_test_results(f.read())))

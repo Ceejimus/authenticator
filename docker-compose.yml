@@ -24,7 +24,7 @@ services:
     volumes:
       - ./auth/:/code/
       - ./test_results:/test_results
-    command: python run.py 
+    command: python test.py 
     depends_on:
       - db
   # web:
