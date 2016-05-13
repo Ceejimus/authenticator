@@ -26,13 +26,13 @@ class UserTests(TestCase):
         self.assertEqual(user_data["authenticated"], False)
 
     def test_passed_test2(self):
-        self.assertEqual(2, 5)
+        self.assertEqual(2, 2)
 
     def test_failed_test(self):
-        self.assertEqual(2, 8)
+        self.assertEqual(2, 42)
 
     def test_failed_test2(self):
-        self.assertEqual(2, 4)
+        self.assertEqual(2, 10)
 
 test_cases = [UserTests]
 
@@ -40,5 +40,6 @@ def load_tests(loader, tests, pattern):
     suite = unittest.TestSuite()
     for test_class in test_cases:
         tests = loader.loadTestsFromTestCase(test_class)
+        print(tests)
         suite.addTests(tests)
     return suite

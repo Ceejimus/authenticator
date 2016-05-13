@@ -1,12 +1,14 @@
 #! /c/Users/cj/AppData/Local/Programs/Python/Python35/python
 import unittest
 from io import StringIO
-from subprocess import call, check_output
+from subprocess import check_call
 import re
 import os
 import shutil
+import time
+import datetime
 
-FAILED_TEST_INFO_REGEX_FORMAT_STR = "(FAIL|ERROR): {0}"
+FAILED_TEST_INFO_REGEX_FORMAT_STR = "(FAIL|ERROR): {0}\s+"
 
 class Test(object):
     def __init__(self, failed, file, suite, name):
@@ -99,10 +101,14 @@ def parse_test_results(test_results):
 
     testRun = TestRun()
     lines = test_results.split('\n')
+    i = 0
     for line in lines:
+        i += 1
+        # print("line: {} -- {}".format(i, line))
         if testRun.hasSummary() == False:
             match = re.search(test_summary_regex, line)
             if match != None:
+                # print("summary found")
                 testRun.setSummary(match.group(0))
                 continue
         match = re.search(failed_tests_regex, line)
@@ -110,6 +116,7 @@ def parse_test_results(test_results):
             file = match.group(3)
             suite = match.group(4)
             name = match.group(2)
+            # print("failed {}.{}.{}".format(file, suite, name))
             testRun.addFailedTest(file, suite, name)
             continue
         match = re.search(passed_tests_regex, line)
@@ -117,14 +124,18 @@ def parse_test_results(test_results):
             file = match.group(3)
             suite = match.group(4)
             name = match.group(2)
+            # print("passed {}.{}.{}".format(file, suite, name))
             testRun.addPassedTest(file, suite, name)
             continue
 
     for test in testRun.failed_tests:
-        failed_test_regex = FAILED_TEST_INFO_REGEX_FORMAT_STR.format(re.escape(test.name))
-        for i in range(len(lines)):
+        i = 0
+        while (i < len(lines)):
+            failed_test_regex = FAILED_TEST_INFO_REGEX_FORMAT_STR.format(re.escape(test.name))
+            # print("line: {} -- {}".format(i, lines[i]))
             match = re.search(failed_test_regex, lines[i])
             if match != None:
+                # print("Match Found! [REGEX] {}".format(failed_test_regex))
                 details = []
                 i += 2
                 match = re.search(separator_regex, lines[i])
@@ -133,32 +144,48 @@ def parse_test_results(test_results):
                     i += 1
                     match = re.search(separator_regex, lines[i])
                 test.setDetails(details)
+                print("details for {}.{}.{}:\n{}".format(test.file, test.suite, test.name, details))
+            i += 1
 
     return(testRun)
 
-test_output_dir = './test_results/'
+def remove_stupid_cache_files():
+    for dirname, dirnames, filenames in os.walk('.'):
+        for subdirname in dirnames:
+            if re.search("__pycache__", subdirname):
+                print("removing '{}'".format(os.path.join(dirname, subdirname)))
+                shutil.rmtree(os.path.join(dirname, subdirname))
 
-dirs_deleted = []
-for dirname, dirnames, filenames in os.walk('.'):
-    for subdirname in dirnames:
-        if re.search("__pycache__", subdirname):
-            print("removing '{}'".format(os.path.join(dirname, subdirname)))
-            shutil.rmtree(os.path.join(dirname, subdirname))
+        for filename in filenames:
+            if re.search("(\.p((o)|(yc))$)", filename):
+                print("removing '{}'".format(os.path.join(dirname, subdirname, filename)))
+                os.remove(os.path.join(dirname, subdirname, file))
 
-    for filename in filenames:
-        if re.search("(\.p((o)|(yc))$)", filename):
-            print("removing '{}'".format(os.path.join(dirname, subdirname, filename)))
-            os.remove(os.path.join(dirname, subdirname, file))
+remove_stupid_cache_files()
 
+results_dir = './test_results/'
+auth_results_file = "auth_test_results.txt"
+auth_results_full_path = os.path.join(results_dir, auth_results_file)
+print(auth_results_full_path)
 
 # build the composition
-call(["docker-compose", "build"])
+check_call(["docker-compose", "build"])
 
-# for some reason I have to call tests twice for it to pick up changes
-# not a big deal ... for now
-call(["docker-compose", "run", "-d", "--rm", "auth", "python", "test.py"])
-# call(["docker-compose", "run", "-d", "--rm", "auth", "python", "test.py"])
+check_call(["docker-compose", "run", "-d", "--rm", "auth", "python", "test.py"])
 
+# for some god damn reason the file doesn't get finished writing by the time this is executed
+# if it takes longer than a second to write the file then something is up
+# time.sleep(1)
 # open test results -- parse -- print results
-with open('./test_results/auth_test_results.txt', 'r') as f:
+
+while (not os.path.isfile(auth_results_full_path)):
+    time.sleep(0.1)
+
+time.sleep(0.5)
+
+with open(auth_results_full_path, 'r') as f:
     print(str(parse_test_results(f.read())))
+
+time.sleep(0.5)
+
+os.remove(auth_results_full_path)

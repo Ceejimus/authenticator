@@ -22,9 +22,9 @@ services:
     ports:
       - "8081:8081"
     volumes:
-      - ./auth/:/code/
+      - ./auth:/code
       - ./test_results:/test_results
-    command: python test.py 
+    command: python test.py
     depends_on:
       - db
   # web:
