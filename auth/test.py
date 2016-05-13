@@ -11,6 +11,7 @@ def run_tests():
     return output.getvalue()
 
 if __name__ == "__main__":
+	filename = sys.argv[1]
 	test_results = run_tests()
-	with open('/test_results/auth_test_results.txt', mode='w+') as file:
+	with open('/test_results/' + filename, mode='w+') as file:
 		file.write(test_results)

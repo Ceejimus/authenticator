@@ -67,7 +67,7 @@ class TestRun(object):
         if failed_test_count > 0:
             out += "{0}/{1} tests failed ...\n\n".format(failed_test_count, test_count)
         for failed_test in self.failed_tests:
-            out += "{0}.{1}.{2} failed...\nDetails:\n".format(
+            out += "[FAILED] {0}.{1}.{2}\nDetails:\n".format(
                     failed_test.file,
                     failed_test.suite,
                     failed_test.name
@@ -79,7 +79,7 @@ class TestRun(object):
         if passed_test_count > 0:
             out += "{0}/{1} tests passed ...\n\n".format(passed_test_count, test_count)
         for passed_test in self.passed_tests:
-            out += "[PASSED] {0}.{1}.{2}...\n".format(
+            out += "[PASSED] {0}.{1}.{2}\n".format(
                     passed_test.file,
                     passed_test.suite,
                     passed_test.name
@@ -171,7 +171,7 @@ print(auth_results_full_path)
 # build the composition
 check_call(["docker-compose", "build"])
 
-check_call(["docker-compose", "run", "-d", "--rm", "auth", "python", "test.py"])
+check_call(["docker-compose", "run", "-d", "--rm", "auth", "python", "test.py", auth_results_file])
 
 # for some god damn reason the file doesn't get finished writing by the time this is executed
 # if it takes longer than a second to write the file then something is up

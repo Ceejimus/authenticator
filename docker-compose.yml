@@ -24,19 +24,19 @@ services:
     volumes:
       - ./auth:/code
       - ./test_results:/test_results
-    command: python test.py
+    command: python run.py
     depends_on:
       - db
-  # web:
-  #   container_name: web
-  #   build: ./web
-  #   command: python run.py
-  #   volumes:
-  #     - ./web/:/code/
-  #   ports:
-  #     - "8080:8080"
-  #   depends_on:
-  #     - auth
+  web:
+    container_name: web
+    build: ./web
+    command: python run.py
+    volumes:
+      - ./web/:/code/
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth
 
 volumes:
   pgdata:
