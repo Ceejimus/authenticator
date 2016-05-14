@@ -1,4 +1,4 @@
-#! /c/Users/cj/AppData/Local/Programs/Python/Python35/python
+#! /c/Users/cj/AppData/Local/Programs/Python/Python35/Python3
 import unittest
 from io import StringIO
 from subprocess import check_call
@@ -153,13 +153,16 @@ def remove_stupid_cache_files():
     for dirname, dirnames, filenames in os.walk('.'):
         for subdirname in dirnames:
             if re.search("__pycache__", subdirname):
-                print("removing '{}'".format(os.path.join(dirname, subdirname)))
-                shutil.rmtree(os.path.join(dirname, subdirname))
+                dir_to_remove = os.path.join(dirname, subdirname)
+                print("removing '{}'".format(dir_to_remove))
+                shutil.rmtree(dir_to_remove)
 
         for filename in filenames:
             if re.search("(\.p((o)|(yc))$)", filename):
-                print("removing '{}'".format(os.path.join(dirname, subdirname, filename)))
-                os.remove(os.path.join(dirname, subdirname, file))
+                file_to_remove = os.path.join(dirname, subdirname, filename)
+                if (os.path.isfile(file_to_remove)):
+                    print("removing '{}'".format(file_to_remove))
+                    os.remove(file_to_remove)
 
 remove_stupid_cache_files()
 
@@ -181,11 +184,12 @@ check_call(["docker-compose", "run", "-d", "--rm", "auth", "python", "test.py", 
 while (not os.path.isfile(auth_results_full_path)):
     time.sleep(0.1)
 
-time.sleep(0.5)
+time.sleep(2)
 
 with open(auth_results_full_path, 'r') as f:
     print(str(parse_test_results(f.read())))
+    f.close()
 
-time.sleep(0.5)
+time.sleep(2)
 
 os.remove(auth_results_full_path)

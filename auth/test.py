@@ -15,3 +15,4 @@ if __name__ == "__main__":
 	test_results = run_tests()
 	with open('/test_results/' + filename, mode='w+') as file:
 		file.write(test_results)
+		file.close()

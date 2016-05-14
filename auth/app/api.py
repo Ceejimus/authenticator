@@ -29,6 +29,20 @@ def create_user():
              mimetype="text/html"
         )
 
+def create_user_from_user_data(user_data, salt):
+    if ('email' not in user_data or 'password' not in user_data):
+        return None
+
+    if (user_data['email'] == None or user_data['password'] == None):
+        return None
+
+    password = string_to_bytes(user_data['password'])
+    hashed_password = hash_password(password, salt)
+    # print("creating new user:\nemail: %s, pass: %s, salt: %s" % (user_data['email'], bytes_to_string(hashed_password), bytes_to_string(salt)))
+    newUser = domain.User(user_data['email'], hashed_password, salt)
+    return newUser
+
+
 @app.route('/user', methods=['GET'])
 def get_user():
     email = request.args['email']
@@ -37,6 +51,10 @@ def get_user():
         if (user_data == None):
             return Response(status=404)
         else:
+            user_data = {
+                'email': user_data.email,
+                'authenticated': user_data.authenticated
+            }
             return json_response(user_data)
     else:
         return Response(status=400)
@@ -48,7 +66,9 @@ def get_user_from_email(email):
         else:
             return {
                 'email': user.email,
-                'authenticated': user.authenticated
+                'authenticated': user.authenticated,
+                'password': user.password,
+                'salt': user.salt
             }
 
 def json_response(data):
@@ -82,18 +102,15 @@ def authenticate_user():
     )
 
 def bytes_to_string(data):
-    return binascii.hexlify(data).decode('utf8')
+    return data.decode('utf8')
 
 def string_to_bytes(data):
-    return binascii.unhexlify(data.encode('utf8'))
+    return data.encode('utf8')
     
+### expects bytes ###
 def hash_password(password, salt):
-    digest = hashlib.sha256
-    print("hashing\npassword: type -- %s, val --%s\nsalt: type -- %s, val -- %s" % (type(password), password, type(salt), salt))
-    if (type(password) is str):
-        password = password.encode('utf8')
     return hashlib.pbkdf2_hmac(
-        digest().name,
+        hashlib.sha256().name,
         password,
         salt,
         100000,
