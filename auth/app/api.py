@@ -1,9 +1,11 @@
-from app import app, db
-import app.domain as domain
-from flask import request, json, Response
 import hashlib
 import os
-import binascii
+
+from app import app, db
+import app.domain as domain
+
+from flask import Response, json, request
+
 
 @app.route('/user/create', methods=['POST'])
 def create_user():
@@ -11,26 +13,30 @@ def create_user():
         return bad_content_type('application/json')
 
     user_data = request.get_json()
-    newUser = create_user_from_user_data(user_data, os.urandom(256))
 
-    if (newUser == None):
+    if ('email' not in user_data or 'password' not in user_data):
         return bad_request('[ERROR] Expected email and password')
 
-    db.session.add(newUser)
+    if user_data['email'] is None or user_data['password'] is None:
+        return bad_request('[ERROR] Expected email and password')
+
+    new_user = create_user_from_user_data(user_data, os.urandom(256))
+    db.session.add(new_user)
     db.session.commit()
 
-    return json_response(newUser.json(), False)
+    return json_response(new_user.json(), False)
+
 
 @app.route('/user', methods=['GET'])
 def get_user():
     email = request.args['email']
 
-    if (email == None):
+    if email is None:
         return bad_request("[ERROR] expected email")
 
     user_data = get_user_data_from_email(email)
 
-    if (user_data == None):
+    if user_data is None:
         return Response(status=404)
 
     user_data = {
@@ -40,73 +46,86 @@ def get_user():
 
     return json_response(user_data)
 
+
 @app.route('/authenticate', methods=['POST'])
 def authenticate_user():
-    user_data = request.get_json()
-    email = user_data['email']
-    password = user_data['password']
-    user = domain.User.query.filter_by(email=email).first()
-    if user == None:
-        print("User not found %s" % email)
-        return Response(
-            json.dumps({'authenticated': False}),
-            status=200,
-            mimetype='application/json'
-        )
-    salt = string_to_bytes(user.salt)
-    hashed_password = hash_password(password, salt)
-    print("db\nemail: %s, pass: %s, salt: %s" % (user.email, user.password, user.salt))
-    print("calc\nemail: %s, pass: %s" % (email, bytes_to_string(hashed_password)))
-    if (hashed_password == string_to_bytes(user.password)):
-        user.authenticated = True
-    else:
-        user.authenticated == False
-    return Response(
-        json.dumps({'authenticated': user.authenticated}),
-        status=200,
-        mimetype="application/json"
-    )
+    if request.headers['content-type'] != 'application/json':
+        return bad_content_type('application/json')
+
+    request_data = request.get_json()
+
+    if ('email' not in request_data or 'password' not in request_data):
+        return bad_request('[ERROR] Expected email and password')
+
+    if request_data['email'] is None or request_data['password'] is None:
+        return bad_request('[ERROR] Expected email and password')
+
+    email = request_data['email']
+    supplied_password = string_to_bytes(request_data['password'])
+
+    user_data = get_user_data_from_email(email)
+
+    if user_data is None:
+        return json_response({'authenticated': False})
+
+    authenticated = authenticate_user_against_supplied_password(supplied_password, user_data)
+
+    return json_response({'authenticated': authenticated})
+
+
+def authenticate_user_against_supplied_password(supplied_password, user_data):
+    salt = user_data.salt
+    hashed_password = hash_password(supplied_password, salt)
+
+    if (hashed_password == string_to_bytes(user_data.password)):
+        return True
+
+    return False
+
 
 def create_user_from_user_data(user_data, salt):
-    if ('email' not in user_data or 'password' not in user_data):
-        return None
-
-    if (user_data['email'] == None or user_data['password'] == None):
-        return None
-
     password = string_to_bytes(user_data['password'])
     hashed_password = hash_password(password, salt)
-    newUser = domain.User(user_data['email'], hashed_password, salt)
-    return newUser
+    new_user = domain.User(user_data['email'], hashed_password, salt)
+    return new_user
+
 
 def get_user_data_from_email(email):
-        user = domain.User.query.filter_by(email=email).first()
-        if (user == None):
-            return None
-        else:
-            return {
-                'email': user.email,
-                'authenticated': user.authenticated,
-                'password': user.password,
-                'salt': user.salt
-            }
+    user = domain.User.query.filter_by(email=email).first()
+    if user is None:
+        return None
+    else:
+        return {
+            'email': user.email,
+            'authenticated': user.authenticated,
+            'password': user.password,
+            'salt': user.salt
+        }
+
 
 def json_response(data, dump=True):
-    return Response(json.dumps(data) if dump else data, status=200, mimetype='application/json')
+    content = json.dumps(data) if dump else data
+    return Response(content, status=200, mimetype='application/json')
+
 
 def bad_request(message):
     return Response(message, status=400, mimetype='text/html')
 
+
 def bad_content_type(expected_mimetype):
-    return Response("[ERROR] expected mimetype: {}".format(expected_mimetype), status=415, mimetype='text/html')
+    content = "[ERROR] expected mimetype: {}".format(expected_mimetype)
+    return Response(content, status=415, mimetype='text/html')
+
 
 def bytes_to_string(data):
     return data.decode('utf8')
 
+
 def string_to_bytes(data):
     return data.encode('utf8')
-    
-### expects bytes ###
+
+
+# expects bytes
 def hash_password(password, salt):
     return hashlib.pbkdf2_hmac(
         hashlib.sha256().name,
