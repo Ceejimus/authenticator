@@ -4,6 +4,7 @@ import app.domain as domain
 import app.api as api
 
 from flask.ext.testing import TestCase
+from flask import json
 
 import os
 import random
@@ -21,21 +22,70 @@ class UserTests(TestCase):
         db.drop_all()
 
     ### Make sure you can save and retreive a user from the database ###
-    def test_can_get_user_from_email(self):
+    def test_can_get_user_data_from_email(self):
         password = "password"
         salt = os.urandom(50)
         pass_hash = api.hash_password(api.string_to_bytes(password), salt)
         newUser = domain.User("test@test.com", pass_hash, salt)
         db.session.add(newUser)
         db.session.commit()
-        user_data = api.get_user_from_email("test@test.com")
+        user_data = api.get_user_data_from_email("test@test.com")
         self.assertEqual(user_data["email"], "test@test.com")
         self.assertEqual(user_data["password"], pass_hash)
         self.assertEqual(user_data["salt"], salt)
         self.assertEqual(user_data["authenticated"], False)
 
+    def test_can_create_user(self):
+        user_data = {
+            'email': 'test@test.com',
+            'password': 'mytestpass'
+        }
+        with self.app.test_client() as client:
+            result = client.post('/user/create',
+                data=json.dumps(user_data),
+                headers={'content-type': 'application/json'})
+            self.assertEqual(200, result.status_code)
+            data = json.loads(result.data)
+            self.assertEqual(user_data['email'], data['email'])
+            self.assertEqual(False, data['authenticated'])
+
+        user_from_db = api.get_user_data_from_email(user_data['email'])
+        self.assertEqual(user_from_db["email"], user_data['email'])
+        self.assertEqual(user_from_db["authenticated"], False)
+
+    def test_can_get_user(self):
+        user_data = {
+            'email': 'test@test.com',
+            'password': 'mytestpass'
+        }
+
+        newUser = api.create_user_from_user_data(user_data, os.urandom(256))
+
+        db.session.add(newUser)
+        db.session.commit()
+
+        with self.app.test_client() as client:
+            result = client.get('/user?email=' + user_data['email'])
+            self.assertEqual(200, result.status_code)
+            data = json.loads(result.data)
+            self.assertEqual(user_data['email'], data['email'])
+            self.assertEqual(False, data['authenticated'])
+
+    def can_authenticate_user(self):
+        user_data = {
+            'email': 'test@test.com',
+            'pass': 'password'
+        }
+
+        salt = os.urandom(50)
+        pass_hash = api.hash_password(api.string_to_bytes(user_data['pass']), salt)
+        newUser = domain.User(user_data['email'], pass_hash, salt)
+        db.session.add(newUser)
+        db.session.commit()
+        assert False
+
     ### make sure the hash works consistently ###
-    def test_hash_works_generally(self):
+    def test_hash_generally_works(self):
         lower_chars = "abcdefghijklmnopqrstuvwxyz"
         upper_chars = "ABCDEFGHIJKLMNOPQRSTUWXYZ"
         digits = "0123456789"
@@ -104,6 +154,7 @@ class UserTests(TestCase):
         self.assertEqual(None, api.create_user_from_user_data(user_data_no_email, salt))
         self.assertEqual(None, api.create_user_from_user_data(user_data_no_password, salt))
         self.assertEqual(None, api.create_user_from_user_data(user_data_no_nuthin, salt))
+
 
 test_cases = [UserTests]
 

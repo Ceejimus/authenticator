@@ -7,72 +7,38 @@ import binascii
 
 @app.route('/user/create', methods=['POST'])
 def create_user():
-    if request.headers['content-type'] == 'application/json':
-        user_data = request.get_json()
-        if (user_data['email'] != None and user_data['password'] != None):
-            salt = os.urandom(256)
-            password = user_data['password']
-            hashed_password = hash_password(password, salt)
-            print("creating new user:\nemail: %s, pass: %s, salt: %s" % (user_data['email'], bytes_to_string(hashed_password), bytes_to_string(salt)))
-            newUser = domain.User(user_data['email'], bytes_to_string(hashed_password), bytes_to_string(salt))
-            db.session.add(newUser)
-            db.session.commit()
-        return Response(
-            newUser.json(),
-            status=200,
-            mimetype='application/json'
-        )
-    else:
-        return Response(
-            'Poo on you',
-             status=415,
-             mimetype="text/html"
-        )
+    if request.headers['content-type'] != 'application/json':
+        return bad_content_type('application/json')
 
-def create_user_from_user_data(user_data, salt):
-    if ('email' not in user_data or 'password' not in user_data):
-        return None
+    user_data = request.get_json()
+    newUser = create_user_from_user_data(user_data, os.urandom(256))
 
-    if (user_data['email'] == None or user_data['password'] == None):
-        return None
+    if (newUser == None):
+        return bad_request('[ERROR] Expected email and password')
 
-    password = string_to_bytes(user_data['password'])
-    hashed_password = hash_password(password, salt)
-    # print("creating new user:\nemail: %s, pass: %s, salt: %s" % (user_data['email'], bytes_to_string(hashed_password), bytes_to_string(salt)))
-    newUser = domain.User(user_data['email'], hashed_password, salt)
-    return newUser
+    db.session.add(newUser)
+    db.session.commit()
 
+    return json_response(newUser.json(), False)
 
 @app.route('/user', methods=['GET'])
 def get_user():
     email = request.args['email']
-    if (email != None):
-        user_data = get_user_from_email(email);
-        if (user_data == None):
-            return Response(status=404)
-        else:
-            user_data = {
-                'email': user_data.email,
-                'authenticated': user_data.authenticated
-            }
-            return json_response(user_data)
-    else:
-        return Response(status=400)
 
-def get_user_from_email(email):
-        user = domain.User.query.filter_by(email=email).first()
-        if (user == None):
-            return None
-        else:
-            return {
-                'email': user.email,
-                'authenticated': user.authenticated,
-                'password': user.password,
-                'salt': user.salt
-            }
+    if (email == None):
+        return bad_request("[ERROR] expected email")
 
-def json_response(data):
-    return Response(json.dumps(data), status=200, mimetype='application/json')
+    user_data = get_user_data_from_email(email)
+
+    if (user_data == None):
+        return Response(status=404)
+
+    user_data = {
+        'email': user_data['email'],
+        'authenticated': user_data['authenticated']
+    }
+
+    return json_response(user_data)
 
 @app.route('/authenticate', methods=['POST'])
 def authenticate_user():
@@ -100,6 +66,39 @@ def authenticate_user():
         status=200,
         mimetype="application/json"
     )
+
+def create_user_from_user_data(user_data, salt):
+    if ('email' not in user_data or 'password' not in user_data):
+        return None
+
+    if (user_data['email'] == None or user_data['password'] == None):
+        return None
+
+    password = string_to_bytes(user_data['password'])
+    hashed_password = hash_password(password, salt)
+    newUser = domain.User(user_data['email'], hashed_password, salt)
+    return newUser
+
+def get_user_data_from_email(email):
+        user = domain.User.query.filter_by(email=email).first()
+        if (user == None):
+            return None
+        else:
+            return {
+                'email': user.email,
+                'authenticated': user.authenticated,
+                'password': user.password,
+                'salt': user.salt
+            }
+
+def json_response(data, dump=True):
+    return Response(json.dumps(data) if dump else data, status=200, mimetype='application/json')
+
+def bad_request(message):
+    return Response(message, status=400, mimetype='text/html')
+
+def bad_content_type(expected_mimetype):
+    return Response("[ERROR] expected mimetype: {}".format(expected_mimetype), status=415, mimetype='text/html')
 
 def bytes_to_string(data):
     return data.decode('utf8')

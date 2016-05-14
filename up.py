@@ -171,6 +171,9 @@ auth_results_file = "auth_test_results.txt"
 auth_results_full_path = os.path.join(results_dir, auth_results_file)
 print(auth_results_full_path)
 
+if (os.path.isfile(auth_results_full_path)):
+    os.remove(auth_results_full_path)
+
 # build the composition
 check_call(["docker-compose", "build"])
 
@@ -189,7 +192,3 @@ time.sleep(2)
 with open(auth_results_full_path, 'r') as f:
     print(str(parse_test_results(f.read())))
     f.close()
-
-time.sleep(2)
-
-os.remove(auth_results_full_path)

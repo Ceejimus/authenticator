@@ -22,7 +22,7 @@ class User(db.Model):
     def json(self):
         return json.dumps({
             'email': self.email,
-            'password': self.password,
-            'salt': self.salt,
+            # 'password': self.password,
+            # 'salt': self.salt,
             'authenticated': self.authenticated
         })

@@ -3,3 +3,4 @@
 */__pychache__
 *.sublime-project
 */*.sublime-workspace
+/test_results/
