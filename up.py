@@ -4,7 +4,7 @@ import re
 import shutil
 import time
 
-from subprocess import check_call
+from subprocess import call, check_call
 
 from testparser import parse_test_results
 
@@ -27,6 +27,10 @@ def remove_stupid_cache_files():
 remove_stupid_cache_files()
 
 results_dir = './test_results/'
+
+if not os.path.exists(results_dir):
+    os.makedirs(results_dir)
+
 auth_results_file = "auth_test_results.txt"
 auth_results_full_path = os.path.join(results_dir, auth_results_file)
 print(auth_results_full_path)
@@ -55,5 +59,14 @@ while (not os.path.isfile(auth_results_full_path)):
 time.sleep(2)
 
 with open(auth_results_full_path, 'r') as f:
-    print(str(parse_test_results(f.read())))
+    test_results = parse_test_results(f.read())
     f.close()
+
+print(str(test_results))
+
+failed_tests = [test for test in test_results.tests if test.failed]
+
+if len(failed_tests) > 0:
+    print("TESTS FAILED! Postponing startup...")
+else:
+    call(["docker-compose", "up"])

@@ -1,10 +1,11 @@
-from flask import Flask, json, request, render_template, redirect, url_for
-from flask.ext.login import login_required
+from flask import Flask, redirect, render_template, request, url_for
+# from flask.ext.login import login_required
 import requests
 
 AUTH_SERVICE = "http://auth:8081/"
 
 app = Flask(__name__)
+
 
 # Simple User Model
 class User():
@@ -26,16 +27,19 @@ class User():
         self.password = password
         self.authenticated = authenticated
 
+
 # Views
 @app.route('/')
 def redirect_to_login():
     return redirect(url_for('login'))
 
+
+# @login_required
 @app.route('/user/create', methods=['POST'])
-#@login_required
 def create_user():
+    print("hello")
     url = AUTH_SERVICE + 'user/create'
-    user = request.form['email']
+    email = request.form['email']
     password = request.form['password']
     data = {'email': email, 'password': password}
     response = requests.post(url, json=data)
@@ -55,8 +59,8 @@ def login():
         data = {'email': email, 'password': password}
         response = requests.post(url, json=data)
         if response.status_code == 200:
-            user_data = response.json();
-            if user_data['authenticated'] == True:
+            user_data = response.json()
+            if user_data['authenticated'] is True:
                 return redirect(url_for('login'))
             else:
                 error = "Invalid Email/Password..."
@@ -65,10 +69,11 @@ def login():
                 % response.status_code
     return render_template('login.html', title="Login", error=error)
 
+
 @app.route('/user')
 def get_user():
     url = AUTH_SERVICE + 'user'
-    payload = {'email' : request.args['email']}
+    payload = {'email': request.args['email']}
     response = requests.get(url, params=payload)
     if response.status_code == 200:
         user_data = response.json()

@@ -13,6 +13,6 @@ WORKDIR /code
 
 # add all files in project directory to '/code/' on container
 ADD ./app/ /code/app/
-ADD ./migrations/ /code/migrations/
+# ADD ./migrations/* /code/migrations/
 ADD ./tests/ /code/tests/
 ADD ./*.py /code/

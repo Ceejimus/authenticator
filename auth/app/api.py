@@ -47,14 +47,14 @@ def get_user():
     return json_response(user_data)
 
 
-@app.route('/authenticate', methods=['POST'])
+@app.route('/user/authenticate', methods=['POST'])
 def authenticate_user():
     if request.headers['content-type'] != 'application/json':
         return bad_content_type('application/json')
 
     request_data = request.get_json()
 
-    if ('email' not in request_data or 'password' not in request_data):
+    if 'email' not in request_data or 'password' not in request_data:
         return bad_request('[ERROR] Expected email and password')
 
     if request_data['email'] is None or request_data['password'] is None:
@@ -68,19 +68,14 @@ def authenticate_user():
     if user_data is None:
         return json_response({'authenticated': False})
 
-    authenticated = authenticate_user_against_supplied_password(supplied_password, user_data)
+    authenticated = authenticate_user_password(user_data, supplied_password)
 
     return json_response({'authenticated': authenticated})
 
 
-def authenticate_user_against_supplied_password(supplied_password, user_data):
-    salt = user_data.salt
-    hashed_password = hash_password(supplied_password, salt)
-
-    if (hashed_password == string_to_bytes(user_data.password)):
-        return True
-
-    return False
+def authenticate_user_password(user_data, supplied_password):
+    salt = user_data["salt"]
+    return hash_password(supplied_password, salt) == user_data["password"]
 
 
 def create_user_from_user_data(user_data, salt):
