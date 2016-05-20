@@ -1,5 +1,7 @@
 from app import db
+
 from flask import json
+
 
 # Simple User Model
 class User(db.Model):

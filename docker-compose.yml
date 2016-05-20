@@ -6,6 +6,7 @@ services:
     image: busybox:latest
     volumes:
       - pgdata:/data
+      # - pgdata:/data
   db:
     container_name: db
     image: postgres:latest
@@ -24,22 +25,21 @@ services:
     volumes:
       # - ./auth/migrations:/code/migrations
       - ./auth:/code
-      # - ./logs:/logs
       - ./test_results:/test_results
     # command: python run.py
-    command: python run.py
+    command: python manage.py db migrate
     depends_on:
       - db
-  web:
-    container_name: web
-    build: ./web
-    command: python run.py
-    volumes:
-      - ./web/:/code/
-    ports:
-      - "8080:8080"
-    depends_on:
-      - auth
+  # web:
+  #   container_name: web
+  #   build: ./web
+  #   command: python run.py
+  #   volumes:
+  #     - ./web/:/code/
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     - auth
 
 volumes:
   pgdata:

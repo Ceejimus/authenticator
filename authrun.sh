@@ -1,0 +1,1 @@
+docker run -it --rm -v /c/Users/cj/Projects/authenticator/auth:/code --link postgresdb:db --name authtest atmoscape/auth:latest bash

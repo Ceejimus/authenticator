@@ -1,7 +1,9 @@
 #! /c/Users/cj/AppData/Local/Programs/Python/Python35/Python3
+import getopt
 import os
 import re
 import shutil
+import sys
 import time
 
 from subprocess import call, check_call
@@ -24,49 +26,109 @@ def remove_stupid_cache_files():
                     print("removing '{}'".format(file_to_remove))
                     os.remove(file_to_remove)
 
-remove_stupid_cache_files()
 
-results_dir = './test_results/'
+def run_tests():
+    results_dir = './test_results/'
+    if not os.path.exists(results_dir):
+        os.makedirs(results_dir)
 
-if not os.path.exists(results_dir):
-    os.makedirs(results_dir)
+    auth_results_file = "auth_test_results.txt"
+    auth_results_full_path = os.path.join(results_dir, auth_results_file)
+    print(auth_results_full_path)
 
-auth_results_file = "auth_test_results.txt"
-auth_results_full_path = os.path.join(results_dir, auth_results_file)
-print(auth_results_full_path)
+    if (os.path.isfile(auth_results_full_path)):
+        os.remove(auth_results_full_path)
 
-if (os.path.isfile(auth_results_full_path)):
-    os.remove(auth_results_full_path)
+    check_call(
+        [
+            "docker-compose",
+            "run",
+            "-d",
+            "--rm",
+            "auth",
+            "python",
+            "test.py",
+            auth_results_file
+        ])
 
-# build the composition
-check_call(["docker-compose", "build"])
+    while (not os.path.isfile(auth_results_full_path)):
+        time.sleep(0.1)
 
-check_call(
-    [
+    time.sleep(2)
+
+    with open(auth_results_full_path, 'r') as f:
+        test_results = parse_test_results(f.read())
+        f.close()
+
+    print(str(test_results))
+
+    failed_tests = [test for test in test_results.tests if test.failed]
+
+    if len(failed_tests) > 0:
+        return False
+    else:
+        return True
+
+def migrate_auth():
+    check_call([
         "docker-compose",
         "run",
         "-d",
         "--rm",
         "auth",
         "python",
-        "test.py",
-        auth_results_file
+        "manage.py",
+        "db",
+        "migrate"
     ])
 
-while (not os.path.isfile(auth_results_full_path)):
-    time.sleep(0.1)
+    check_call([
+        "docker-compose",
+        "run",
+        "-d",
+        "--rm",
+        "auth",
+        "python",
+        "manage.py",
+        "db",
+        "upgrade"
+    ])
 
-time.sleep(2)
 
-with open(auth_results_full_path, 'r') as f:
-    test_results = parse_test_results(f.read())
-    f.close()
+def main(name, argv):
+    try:
+        opts, args = getopt.getopt(
+            argv,
+            "sr",
+            ["--skip-tests", "--remove-cache"])
+    except getopt.GetoptError:
+        print("{} [-s||--skip-tests] [-r||--remove-cache]".format(name))
 
-print(str(test_results))
+    skip_tests = False
+    remove_cache = False
+    for opt, arg in opts:
+        if opt == '-h':
+            print("{} [-s||--skip-tests] [-r||--remove-cache]".format(name))
+            sys.exit()
+        elif opt in ("-s", "--skip-tests"):
+            skip_tests = True
+        elif opt in ("-r", "--remove-cache"):
+            remove_cache = True
 
-failed_tests = [test for test in test_results.tests if test.failed]
+    if remove_cache:
+        remove_stupid_cache_files()
 
-if len(failed_tests) > 0:
-    print("TESTS FAILED! Postponing startup...")
-else:
-    call(["docker-compose", "up"])
+    # build the composition
+    check_call(["docker-compose", "build"])
+    # migrate_auth()
+
+    if not skip_tests:
+        if run_tests():
+            call(["docker-compose", "up"])
+        else:
+            print("Tests Failed! Postponing up...")
+    else:
+            call(["docker-compose", "up"])
+
+if __name__ == '__main__':
+    main(sys.argv[0], sys.argv[1:])

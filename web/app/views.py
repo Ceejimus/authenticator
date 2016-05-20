@@ -13,8 +13,9 @@ def redirect_to_login():
 @app.route('/account/create', methods=['GET', 'POST'])
 #@login_required
 def create_user():
-    form = forms.CreateUserForm();
+    form = forms.CreateUserForm()
     if form.validate_on_submit():
+        print("hello")
         url = AUTH_SERVICE + 'user/create'
         email = request.form['email']
         password = request.form['password']
